@@ -1,0 +1,46 @@
+name: CI
+on: [push]
+
+env:
+  CSV_URL: "train_pca.csv" # Points to local file in repo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12.7"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mlflow
+        
+    - name: Run mlflow project
+      run: |
+        # [cite: 382]
+        mlflow run . --env-manager=local
+
+    - name: Save mlruns to repo
+      run: |
+        # Use the standard GitHub Actions Bot identity
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        
+        # Initialize LFS (if you are using it)
+        git lfs install
+        git lfs track "mlruns/**"
+        git add .gitattributes
+        
+        # Stage and Commit
+        git add mlruns/
+        git commit -m "Automated Run: Save mlruns artifacts" || true
+        
+        # Push
+        # This uses the built-in GITHUB_TOKEN automatically.
+        # No password or PAT is required here.
+        git push origin main
